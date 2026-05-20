@@ -1,0 +1,33 @@
+# Docker Compose per il sistema di ticketing scolastico
+# Avvio: docker compose up -d --build
+
+services:
+  # Container PHP/Apache — serve index.php
+  web:
+    build: .
+    ports:
+      - "8080:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Container MySQL — host "db" come richiesto nella configurazione PDO
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: scuola_db
+    volumes:
+      # Lo script init.sql viene eseguito automaticamente al primo avvio
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  db_data:
